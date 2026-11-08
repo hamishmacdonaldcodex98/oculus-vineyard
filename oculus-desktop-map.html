@@ -635,22 +635,46 @@
     }
 
     @media (orientation: portrait) {
+      html.is-phone header {
+        padding: 8px 12px 0;
+      }
+
       html.is-phone .rotate-hint {
         display: block;
+        font-size: 10px;
+        margin: 2px 0 4px;
+      }
+
+      html.is-phone .stage {
+        flex: 1 0 auto;
       }
 
       html.is-phone .map-wrap {
-        padding: 8px max(8px, env(safe-area-inset-right)) 12px max(8px, env(safe-area-inset-left));
+        flex: 0 0 auto;
+        padding: 2px 0 8px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      html.is-phone svg {
+        display: block;
+        width: 168%;
+        min-width: 168%;
+        max-width: none;
+        height: auto;
+        min-height: 0;
+        margin: 0;
+        aspect-ratio: 2400 / 1300;
       }
 
       html.is-phone .logs {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 8px;
-        width: calc(100% - 24px);
-        max-width: 420px;
-        margin: 0 auto calc(24px + env(safe-area-inset-bottom));
-        padding: 10px;
+        gap: 5px;
+        width: calc(100% - 40px);
+        max-width: 300px;
+        margin: 0 auto calc(16px + env(safe-area-inset-bottom));
+        padding: 6px;
       }
 
       html.is-phone .logs-label {
@@ -659,7 +683,10 @@
 
       html.is-phone .logs button {
         width: 100%;
+        min-height: 32px;
         margin: 0;
+        padding: 5px 7px;
+        font-size: 11px;
         white-space: normal;
       }
     }
