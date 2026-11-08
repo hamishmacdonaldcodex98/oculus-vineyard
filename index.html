@@ -4,6 +4,16 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Oculus Vineyard</title>
+  <meta name="description" content="Block map and site logs for Oculus Vineyard." />
+  <meta name="apple-mobile-web-app-title" content="Oculus Vineyard" />
+  <meta property="og:title" content="Oculus Vineyard" />
+  <meta property="og:site_name" content="Oculus Vineyard" />
+  <meta property="og:description" content="Block map and site logs for Oculus Vineyard." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://hamishmacdonaldcodex98.github.io/oculus-vineyard/" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="Oculus Vineyard" />
+  <meta name="twitter:description" content="Block map and site logs for Oculus Vineyard." />
   <script>
     (function () {
       var w = window.innerWidth || 0;
@@ -59,6 +69,14 @@
       letter-spacing: 0.2em;
       text-transform: uppercase;
       color: var(--ink);
+    }
+
+    .rotate-hint {
+      display: none;
+      margin: 4px 0 0;
+      color: var(--terra);
+      font-size: 12px;
+      letter-spacing: 0.04em;
     }
 
     .stage {
@@ -451,7 +469,7 @@
     }
 
     html.is-phone header {
-      padding: 8px 12px 2px;
+      padding: 6px 12px 2px;
     }
 
     html.is-phone header h1 {
@@ -460,34 +478,38 @@
     }
 
     html.is-phone .map-wrap {
-      padding: 4px 8px 76px;
+      padding: 4px max(156px, calc(148px + env(safe-area-inset-right) + 8px)) 8px max(8px, env(safe-area-inset-left));
+    }
+
+    html.is-phone svg {
+      width: 100%;
+      height: 100%;
+      max-width: 100%;
+      max-height: 100%;
     }
 
     html.is-phone .logs {
-      top: auto;
-      right: 0;
-      bottom: 0;
-      left: 0;
-      width: auto;
-      display: flex;
-      flex-wrap: nowrap;
-      gap: 6px;
-      overflow-x: auto;
+      top: 6px;
+      right: max(6px, env(safe-area-inset-right));
+      bottom: auto;
+      left: auto;
+      width: 148px;
+      max-height: calc(100% - 12px);
+      overflow: auto;
       -webkit-overflow-scrolling: touch;
-      padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+      padding: 8px;
     }
 
     html.is-phone .logs-label {
-      display: none;
+      margin: 0 0 6px;
+      font-size: 9px;
     }
 
     html.is-phone .logs button {
-      flex: 0 0 auto;
-      width: auto;
-      margin: 0;
-      padding: 10px 12px;
-      font-size: 13px;
-      white-space: nowrap;
+      min-height: 44px;
+      margin: 0 0 4px;
+      padding: 10px 8px;
+      font-size: 12px;
     }
 
     html.is-phone aside {
@@ -512,6 +534,65 @@
       min-height: 44px;
     }
 
+    @media (orientation: landscape) and (max-height: 500px) {
+      html.is-phone header {
+        padding: 4px 10px 0;
+      }
+
+      html.is-phone header h1 {
+        font-size: 11px;
+        letter-spacing: 0.12em;
+      }
+
+      html.is-phone .logs-label {
+        display: none;
+      }
+
+      html.is-phone .logs {
+        padding: 6px;
+      }
+
+      html.is-phone .logs button {
+        margin: 0 0 3px;
+        font-size: 11px;
+      }
+    }
+
+    @media (orientation: portrait) {
+      html.is-phone .rotate-hint {
+        display: block;
+      }
+
+      html.is-phone .map-wrap {
+        padding: 8px max(8px, env(safe-area-inset-right)) 72px max(8px, env(safe-area-inset-left));
+      }
+
+      html.is-phone .logs {
+        top: auto;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        width: auto;
+        max-height: none;
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 6px;
+        overflow-x: auto;
+        padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+      }
+
+      html.is-phone .logs-label {
+        display: none;
+      }
+
+      html.is-phone .logs button {
+        flex: 0 0 auto;
+        width: auto;
+        margin: 0;
+        white-space: nowrap;
+      }
+    }
+
     @media (prefers-reduced-motion: reduce) {
       header, .map-wrap, aside {
         transition: none;
@@ -529,6 +610,7 @@
 <body>
   <header>
     <h1>Oculus Vineyard</h1>
+    <p class="rotate-hint">Turn the phone sideways for the vineyard map.</p>
   </header>
   <div class="stage">
     <div class="map-wrap">
@@ -774,11 +856,10 @@
     ];
 
     function usePhoneMap() {
-      const width = window.innerWidth;
-      const height = window.innerHeight;
-      const portrait = height >= width;
+      const narrow = window.matchMedia("(max-width: 1100px)").matches;
+      const portrait = window.matchMedia("(orientation: portrait)").matches;
       const phoneAgent = /iPhone|iPod|Android.+Mobile|Windows Phone/i.test(navigator.userAgent || "");
-      return width <= 1100 || (portrait && phoneAgent);
+      return narrow || (portrait && phoneAgent);
     }
 
     function applyLayoutClass() {
@@ -834,77 +915,28 @@
         H: MAP_H,
         northTitle: { x: 575, y: 70 },
         southTitle: { x: 1765, y: 70 },
-        phone: false,
       };
     }
 
-    function layoutPhone() {
-      const W = 1200;
-      const H = 2100;
-      const padX = 56;
-      const innerW = W - padX * 2;
-      const gap = 8;
-      const north = blocks.filter((b) => b.side === "Left");
-      const south = blocks.filter((b) => b.side === "Right");
-      const top = 96;
-      const midBand = 72;
-      const bot = 40;
-      const usable = H - top - midBand - bot - gap * (north.length + south.length - 2);
-      const northShare = usable * (north.length / (north.length + south.length));
-      const southShare = usable - northShare;
-
-      function stack(items, startY, share) {
-        const maxRows = Math.max(...items.map((b) => b.rows));
-        const weights = items.map((b) => 0.48 + 0.52 * (b.rows / maxRows));
-        const sum = weights.reduce((n, w) => n + w, 0);
-        let y = startY;
-        items.forEach((b, i) => {
-          b.x = padX;
-          b.w = innerW;
-          b.h = share * (weights[i] / sum);
-          b.y = y;
-          y += b.h + gap;
-        });
-        return y;
-      }
-
-      const northEnd = stack(north, top, northShare);
-      stack(south, northEnd + midBand - gap, southShare);
-      return {
-        W,
-        H,
-        northTitle: { x: W / 2, y: 70 },
-        southTitle: { x: W / 2, y: northEnd + 44 },
-        phone: true,
-      };
-    }
-
-    function blockMarkup(b, phone) {
+    function blockMarkup(b) {
       const x = b.x;
       const y = b.y;
       const cx = x + b.w / 2;
       const cy = y + b.h / 2;
-      let fontSize = phone
-        ? Math.max(20, Math.min(36, b.h * 0.32))
-        : Math.max(20, Math.min(36, b.h * 0.26));
-      const lines = !b.name
-        ? []
-        : phone && (b.name.includes(" / ") || b.name.length > 16)
-          ? (b.name.includes(" / ") ? b.name.split(" / ") : b.name.split(" "))
-          : [b.name];
+      let fontSize = Math.max(20, Math.min(36, b.h * 0.26));
+      const lines = b.name ? [b.name] : [];
       const longest = lines.reduce((n, line) => Math.max(n, line.length), 0);
       if (longest) {
-        fontSize = Math.min(fontSize, b.w / (longest * (phone ? 0.58 : 0.62)));
+        fontSize = Math.min(fontSize, b.w / (longest * 0.62));
       }
-      fontSize = Math.max(phone ? 16 : 18, fontSize);
+      fontSize = Math.max(18, fontSize);
       const lineH = fontSize * 1.1;
       const startY = cy - ((lines.length - 1) * lineH) / 2 + fontSize * 0.32;
       const label = lines.map((line, i) =>
         `<text class="label" x="${cx}" y="${startY + i * lineH}" text-anchor="middle" font-size="${fontSize.toFixed(1)}">${line}</text>`
       ).join("");
-      const hitPad = phone ? 10 : 6;
       return `<g class="block" data-id="${b.id}" tabindex="0" style="--glow:${b.fill}">
-        <rect class="hit" x="${x}" y="${y - hitPad}" width="${b.w}" height="${b.h + hitPad * 2}"/>
+        <rect class="hit" x="${x}" y="${y - 6}" width="${b.w}" height="${b.h + 12}"/>
         <rect class="fill" x="${x}" y="${y}" width="${b.w}" height="${b.h}"/>
         ${label}
       </g>`;
@@ -923,19 +955,16 @@
     }
 
     function drawMap() {
-      const frame = applyLayoutClass() ? layoutPhone() : layoutDesktop();
+      applyLayoutClass();
+      const frame = layoutDesktop();
       svg.setAttribute("viewBox", `0 0 ${frame.W} ${frame.H}`);
-      const divider = frame.phone
-        ? ""
-        : `<line x1="1148" y1="28" x2="1148" y2="${frame.H - 28}" stroke="${CREAM}" stroke-width="2"/>`;
-      const titleSize = frame.phone ? 28 : 24;
       svg.innerHTML = `
         <rect width="${frame.W}" height="${frame.H}" fill="${NAVY}"/>
         <rect x="40" y="28" width="${frame.W - 80}" height="${frame.H - 56}" fill="none" stroke="${CREAM}" stroke-width="2"/>
-        ${divider}
-        <text class="map-title" x="${frame.northTitle.x}" y="${frame.northTitle.y}" text-anchor="middle" font-size="${titleSize}">NORTH BLOCK</text>
-        <text class="map-title" x="${frame.southTitle.x}" y="${frame.southTitle.y}" text-anchor="middle" font-size="${titleSize}">SOUTH BLOCK</text>
-        ${blocks.map((b) => blockMarkup(b, frame.phone)).join("")}
+        <line x1="1148" y1="28" x2="1148" y2="${frame.H - 28}" stroke="${CREAM}" stroke-width="2"/>
+        <text class="map-title" x="${frame.northTitle.x}" y="${frame.northTitle.y}" text-anchor="middle" font-size="24">NORTH BLOCK</text>
+        <text class="map-title" x="${frame.southTitle.x}" y="${frame.southTitle.y}" text-anchor="middle" font-size="24">SOUTH BLOCK</text>
+        ${blocks.map((b) => blockMarkup(b)).join("")}
       `;
       bindNodes();
     }
@@ -1215,8 +1244,7 @@
       const phone = usePhoneMap();
       const isPhone = document.documentElement.classList.contains("is-phone");
       if (phone === isPhone) return;
-      drawMap();
-      setActive();
+      applyLayoutClass();
     }
     function scheduleLayoutSync() {
       clearTimeout(layoutTimer);
@@ -1226,6 +1254,15 @@
     window.addEventListener("orientationchange", scheduleLayoutSync);
     if (window.visualViewport) {
       window.visualViewport.addEventListener("resize", scheduleLayoutSync);
+    }
+    const phoneMq = window.matchMedia("(max-width: 1100px)");
+    const orientMq = window.matchMedia("(orientation: portrait)");
+    if (phoneMq.addEventListener) {
+      phoneMq.addEventListener("change", scheduleLayoutSync);
+      orientMq.addEventListener("change", scheduleLayoutSync);
+    } else {
+      phoneMq.addListener(scheduleLayoutSync);
+      orientMq.addListener(scheduleLayoutSync);
     }
 
   </script>

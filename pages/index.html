@@ -1,0 +1,1270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Oculus Vineyard</title>
+  <meta name="description" content="Block map and site logs for Oculus Vineyard." />
+  <meta name="apple-mobile-web-app-title" content="Oculus Vineyard" />
+  <meta property="og:title" content="Oculus Vineyard" />
+  <meta property="og:site_name" content="Oculus Vineyard" />
+  <meta property="og:description" content="Block map and site logs for Oculus Vineyard." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://hamishmacdonaldcodex98.github.io/oculus-vineyard/" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="Oculus Vineyard" />
+  <meta name="twitter:description" content="Block map and site logs for Oculus Vineyard." />
+  <script>
+    (function () {
+      var w = window.innerWidth || 0;
+      var h = window.innerHeight || 0;
+      var portrait = h >= w;
+      var phoneAgent = /iPhone|iPod|Android.+Mobile|Windows Phone/i.test(navigator.userAgent || "");
+      var phone = w <= 1100 || (portrait && phoneAgent);
+      document.documentElement.classList.toggle("is-phone", phone);
+      document.documentElement.classList.toggle("is-desktop", !phone);
+    })();
+  </script>
+  <style>
+    :root {
+      --paper: #2d7cc0;
+      --panel: #246eaf;
+      --ink: #efe6d4;
+      --muted: #c9d8ea;
+      --line: #4b92c8;
+      --terra: #f4b8c8;
+      --cream: #efe6d4;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: "Futura", "Avenir Next", "Helvetica Neue", Arial, sans-serif;
+      -webkit-text-size-adjust: 100%;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    header {
+      flex: 0 0 auto;
+      padding: 10px 20px 4px;
+      transition: opacity 0.5s ease;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--ink);
+    }
+
+    .rotate-hint {
+      display: none;
+      margin: 4px 0 0;
+      color: var(--terra);
+      font-size: 12px;
+      letter-spacing: 0.04em;
+    }
+
+    .stage {
+      position: relative;
+      flex: 1;
+      min-height: 0;
+    }
+
+    .map-wrap {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px 200px 12px 16px;
+      transform-origin: center center;
+      transition: opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+        transform 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+        filter 0.55s ease;
+    }
+
+    svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .block { cursor: pointer; pointer-events: all; }
+    .block .hit {
+      fill: transparent;
+      stroke: none;
+      pointer-events: all;
+    }
+    .block .label,
+    .map-title {
+      font-family: "Futura", "Avenir Next", "Helvetica Neue", Arial, sans-serif;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      fill: var(--cream);
+      pointer-events: none;
+    }
+    .block .label {
+      transition: fill 0.2s ease;
+    }
+    .map-title {
+      font-weight: 700;
+      letter-spacing: 0.2em;
+    }
+    .block .fill {
+      fill: var(--paper);
+      stroke: var(--cream);
+      stroke-width: 2.5;
+      pointer-events: none;
+      transition: fill 0.22s ease, stroke-width 0.2s ease;
+    }
+    .block.is-lit .label {
+      fill: #1d3f63;
+    }
+    .block.is-lit .fill {
+      fill: var(--glow);
+      stroke-width: 5;
+    }
+
+    aside {
+      position: absolute;
+      top: 9vh;
+      right: calc((100% - min(560px, 86vw)) / 2);
+      z-index: 2;
+      width: min(560px, 86vw);
+      max-height: min(82vh, 760px);
+      overflow: auto;
+      padding: 28px 32px 24px;
+      background: rgba(29, 90, 148, 0.97);
+      border: 1px solid var(--glow, var(--cream));
+      box-shadow: 0 28px 80px rgba(8, 28, 52, 0.45);
+      opacity: 0;
+      transform: scale(0.92);
+      pointer-events: none;
+      transition:
+        opacity 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+        transform 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+        border-color 0.45s ease;
+    }
+
+    .logs {
+      position: absolute;
+      top: 8px;
+      right: 12px;
+      z-index: 2;
+      width: 176px;
+      padding: 10px;
+      background: rgba(36, 110, 175, 0.94);
+      border: 1px solid var(--line);
+      transition: opacity 0.45s ease;
+    }
+
+    .logs-label {
+      margin: 0 0 8px;
+      color: var(--terra);
+      font-size: 10px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    .logs button {
+      display: block;
+      width: 100%;
+      margin: 0 0 4px;
+      padding: 8px 8px;
+      border: 1px solid var(--line);
+      background: #1f5f98;
+      color: var(--cream);
+      font: inherit;
+      font-size: 12px;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .logs button:hover {
+      background: var(--cream);
+      color: #1d3f63;
+      border-color: transparent;
+    }
+
+    body.is-open header,
+    body.is-open .logs {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    body.is-open .map-wrap {
+      opacity: 0;
+      filter: blur(10px);
+      transform: scale(0.96);
+      pointer-events: none;
+    }
+
+    body.is-open aside {
+      opacity: 1;
+      transform: scale(1);
+      pointer-events: auto;
+    }
+
+    body.is-open .back {
+      font-size: 14px;
+      margin-bottom: 14px;
+      padding: 8px 14px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      border: 2px solid #fff;
+      color: #fff;
+    }
+
+    body.is-open .block-head {
+      font-size: 28px;
+      margin-bottom: 6px;
+    }
+
+    body.is-open .inactive-flag {
+      font-size: 13px;
+    }
+
+    body.is-open .block-meta {
+      font-size: 14px;
+      margin-bottom: 12px;
+    }
+
+    .stage-box {
+      margin: 0 0 16px;
+      padding: 0 0 14px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .stage-kicker {
+      margin: 0 0 4px;
+      color: var(--terra);
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    .stage-name {
+      margin: 0 0 10px;
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .stage-box dt {
+      margin: 8px 0 2px;
+      color: var(--muted);
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .stage-box dd {
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    body.is-open .job {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin: 0 0 12px;
+      padding: 0 0 12px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    body.is-open .job-name {
+      margin: 0;
+      font-size: 16px;
+    }
+
+    body.is-open .job-actions button {
+      padding: 8px 14px;
+      font-size: 14px;
+    }
+
+    body.is-open textarea {
+      min-height: 88px;
+      margin-top: 8px;
+      padding: 12px;
+      font-size: 15px;
+    }
+
+    .log-entry {
+      margin: 0 0 12px;
+      padding: 0 0 12px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .log-entry time {
+      display: block;
+      margin-bottom: 4px;
+      color: var(--terra);
+      font-size: 12px;
+      letter-spacing: 0.06em;
+    }
+
+    .log-entry p {
+      margin: 0;
+      font-size: 15px;
+      line-height: 1.4;
+    }
+
+    .log-empty {
+      margin: 0 0 16px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .log-add {
+      margin-top: 16px;
+    }
+
+    .log-add label {
+      display: block;
+      margin: 0 0 6px;
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .log-add input[type="date"] {
+      width: 100%;
+      margin: 0 0 10px;
+      padding: 8px 10px;
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      background: #1f5f98;
+      color: var(--cream);
+      font: inherit;
+      font-size: 14px;
+    }
+
+    .add-entry {
+      margin-top: 10px;
+      padding: 8px 14px;
+      border: 2px solid #fff;
+      background: none;
+      color: #fff;
+      font: inherit;
+      font-size: 14px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+
+    .back {
+      display: inline-block;
+      margin: 0 0 8px;
+      padding: 4px 10px;
+      border: 1.5px solid #fff;
+      background: none;
+      color: #fff;
+      font: inherit;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .block-head {
+      margin: 0 0 2px;
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .inactive-flag {
+      margin: 0 0 8px;
+      color: var(--terra);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .block-meta {
+      margin: 0 0 10px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .job {
+      margin: 0 0 8px;
+      padding: 0;
+      border: 0;
+      background: none;
+    }
+
+    .job-name {
+      display: block;
+      margin: 0 0 3px;
+      font-size: 12px;
+    }
+
+    .job-actions {
+      display: flex;
+      flex-shrink: 0;
+      gap: 4px;
+    }
+
+    .job-actions button {
+      padding: 3px 6px;
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      background: #1f5f98;
+      color: var(--cream);
+      color: inherit;
+      font: inherit;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .job-actions button.is-on {
+      background: var(--terra);
+      border-color: var(--terra);
+      color: #fff;
+    }
+
+    textarea.notes-only {
+      min-height: 160px;
+    }
+
+    body.is-open textarea.notes-only {
+      min-height: min(52vh, 420px);
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 52px;
+      margin: 6px 0 0;
+      padding: 6px;
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      background: #1f5f98;
+      color: var(--cream);
+      font: inherit;
+      font-size: 12px;
+      resize: vertical;
+    }
+
+    html.is-phone,
+    html.is-phone body {
+      min-width: 0;
+      width: 100%;
+      max-width: 100%;
+    }
+
+    html.is-phone header {
+      padding: 6px 12px 2px;
+    }
+
+    html.is-phone header h1 {
+      font-size: 13px;
+      letter-spacing: 0.14em;
+    }
+
+    html.is-phone .map-wrap {
+      padding: 4px max(156px, calc(148px + env(safe-area-inset-right) + 8px)) 8px max(8px, env(safe-area-inset-left));
+    }
+
+    html.is-phone svg {
+      width: 100%;
+      height: 100%;
+      max-width: 100%;
+      max-height: 100%;
+    }
+
+    html.is-phone .logs {
+      top: 6px;
+      right: max(6px, env(safe-area-inset-right));
+      bottom: auto;
+      left: auto;
+      width: 148px;
+      max-height: calc(100% - 12px);
+      overflow: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 8px;
+    }
+
+    html.is-phone .logs-label {
+      margin: 0 0 6px;
+      font-size: 9px;
+    }
+
+    html.is-phone .logs button {
+      min-height: 44px;
+      margin: 0 0 4px;
+      padding: 10px 8px;
+      font-size: 12px;
+    }
+
+    html.is-phone aside {
+      top: 0;
+      right: 0;
+      left: 0;
+      width: auto;
+      max-height: none;
+      height: 100%;
+      padding: 16px 16px calc(20px + env(safe-area-inset-bottom));
+      border-left: 0;
+      border-right: 0;
+    }
+
+    html.is-phone body.is-open .block-head {
+      font-size: 22px;
+    }
+
+    html.is-phone body.is-open .job-actions button,
+    html.is-phone .add-entry,
+    html.is-phone .back {
+      min-height: 44px;
+    }
+
+    @media (orientation: landscape) and (max-height: 500px) {
+      html.is-phone header {
+        padding: 4px 10px 0;
+      }
+
+      html.is-phone header h1 {
+        font-size: 11px;
+        letter-spacing: 0.12em;
+      }
+
+      html.is-phone .logs-label {
+        display: none;
+      }
+
+      html.is-phone .logs {
+        padding: 6px;
+      }
+
+      html.is-phone .logs button {
+        margin: 0 0 3px;
+        font-size: 11px;
+      }
+    }
+
+    @media (orientation: portrait) {
+      html.is-phone .rotate-hint {
+        display: block;
+      }
+
+      html.is-phone .map-wrap {
+        padding: 8px max(8px, env(safe-area-inset-right)) 72px max(8px, env(safe-area-inset-left));
+      }
+
+      html.is-phone .logs {
+        top: auto;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        width: auto;
+        max-height: none;
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 6px;
+        overflow-x: auto;
+        padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+      }
+
+      html.is-phone .logs-label {
+        display: none;
+      }
+
+      html.is-phone .logs button {
+        flex: 0 0 auto;
+        width: auto;
+        margin: 0;
+        white-space: nowrap;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      header, .map-wrap, aside {
+        transition: none;
+      }
+    }
+
+    @media print {
+      body { display: block; background: white; }
+      aside, .logs { display: none; }
+      .map-wrap { padding: 0; }
+      svg { height: auto; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Oculus Vineyard</h1>
+    <p class="rotate-hint">Turn the phone sideways for the vineyard map.</p>
+  </header>
+  <div class="stage">
+    <div class="map-wrap">
+      <svg id="map" viewBox="0 0 2400 1300" role="img" aria-labelledby="mapTitle" preserveAspectRatio="xMidYMid meet">
+        <title id="mapTitle">Oculus Vineyard block map</title>
+      </svg>
+    </div>
+    <nav class="logs" id="logs"></nav>
+    <aside id="panel">
+      <div id="detail"></div>
+    </aside>
+  </div>
+  <script>
+    const NAVY = "#2d7cc0";
+    const CREAM = "#efe6d4";
+    const MAP_W = 2400;
+    const MAP_H = 1300;
+
+    const blocks = [
+      {
+        id: "pinot-gris",
+        side: "Left",
+        name: "Pinot Gris",
+        rowLabel: "S162-177",
+        rows: 16,
+        ha: 1.0,
+        haLabel: "1.0Ha",
+        fill: "#ff9eb8",
+        stageCode: "E-L 19",
+        stageName: "Beginning of flowering",
+        stageWhat: "Flower clusters are full size and the first caps are lifting.",
+        stageWork: "Tuck shoots. Spray for powdery mildew before full capfall.",
+        stageNote: "30 Oct. Caps moving first on the lower wires. Keep the flowering cover on if it stays humid.",
+      },
+      {
+        id: "arneis",
+        side: "Left",
+        name: "Arneis",
+        rowLabel: "S156-161",
+        rows: 6,
+        ha: 0.53,
+        haLabel: "0.53Ha",
+        fill: "#7af0d2",
+        stageCode: "E-L 17",
+        stageName: "Inflorescence elongating",
+        stageWhat: "About 12 leaves out. Flower bunches are stretching but still closed.",
+        stageWork: "Shoot-thin. Lift the foliage wires. Keep the powdery cover current.",
+        stageNote: "30 Oct. Shoots even. Take water-shoots off the old heads before they shade the bunches.",
+      },
+      {
+        id: "s153",
+        side: "Left",
+        name: "",
+        rowLabel: "S153-155",
+        rows: 3,
+        ha: null,
+        haLabel: null,
+        fill: "#e8e0d0",
+        notesOnly: true,
+      },
+      {
+        id: "tempranillo",
+        side: "Left",
+        name: "Tempranillo",
+        rowLabel: "S147-152",
+        rows: 6,
+        ha: 0.55,
+        haLabel: "0.55Ha",
+        fill: "#f6c48a",
+        stageCode: "E-L 15",
+        stageName: "Eight leaves separated",
+        stageWhat: "Canopy is filling. Flower bunches are clear and starting to stretch.",
+        stageWork: "Position shoots. Check irrigation as the canopy takes off.",
+        stageNote: "30 Oct. Strong push after the warm week. East-end vines look a bit weaker.",
+      },
+      {
+        id: "pinot-noir-2",
+        side: "Left",
+        name: "Pinot Noir",
+        rowLabel: "S143-146",
+        rows: 4,
+        ha: 0.34,
+        haLabel: "0.34Ha",
+        fill: "#c5b4e8",
+        stageCode: "E-L 19",
+        stageName: "Beginning of flowering",
+        stageWhat: "First caps lifting. Pinot sets quickly, so the spray window is short.",
+        stageWork: "Tuck only, no hedging. Spray before 50 percent capfall.",
+        stageNote: "30 Oct. A day or two behind the bigger Pinot block. Bunch counts look decent.",
+      },
+      {
+        id: "pinot-noir-1",
+        side: "Left",
+        name: "Pinot Noir",
+        rowLabel: "S132-142",
+        rows: 11,
+        ha: 1.0,
+        haLabel: "1.0Ha",
+        fill: "#f28b9c",
+        stageCode: "E-L 23",
+        stageName: "Full flowering, 50 percent capfall",
+        stageWhat: "Half the flower caps are off. Fruit set is happening now.",
+        stageWork: "Flowering spray if the last cover is over a week old. Tuck shoots, do not leaf-pluck yet.",
+        stageNote: "30 Oct. Capfall started on the north face. Recheck set in a fortnight.",
+      },
+      {
+        id: "merlot-pinot",
+        side: "Left",
+        name: "Merlot / Pinot Noir Grafting",
+        rowLabel: "N117-131",
+        rows: 15,
+        ha: 1.38,
+        haLabel: "1.38Ha",
+        fill: "#8fd4f0",
+        stageCode: "E-L 15 to 19",
+        stageName: "Mixed, grafting block",
+        stageWhat: "Pinot is starting to flower. Merlot on the same vines is still stretching bunches.",
+        stageWork: "Keep graft tape clear of the wires. Shoot-thin the scion only.",
+        stageNote: "30 Oct. About one in ten grafts still look shy. Tag those and do not crop them this year.",
+      },
+      {
+        id: "viognier",
+        side: "Right",
+        name: "Viognier",
+        rowLabel: "N83-84",
+        rows: 2,
+        ha: 0.2,
+        haLabel: "0.2Ha",
+        fill: "#ffe08a",
+        stageCode: "E-L 15",
+        stageName: "Eight leaves separated",
+        stageWhat: "Canopy just getting away. Flower bunches visible and stretching.",
+        stageWork: "Thin to one bunch per shoot if vines look weak. Keep a powdery cover on.",
+        stageNote: "30 Oct. Both rows even. New leaves a bit yellow, likely cool nights.",
+      },
+      {
+        id: "viognier-gruner",
+        side: "Right",
+        name: "Viognier / Grüner Veltliner Grafting",
+        rowLabel: "N80-82",
+        rows: 3,
+        ha: 0.3,
+        haLabel: "0.3Ha",
+        fill: "#b8e08a",
+        stageCode: "E-L 12 to 15",
+        stageName: "Shoots 10 cm, grafting",
+        stageWhat: "New scion growth at 5 to 8 leaves. Flower bunches just showing.",
+        stageWork: "Train one or two scion shoots. Take suckers off below the graft.",
+        stageNote: "30 Oct. Grüner scions look more even. Two vines in row N80 need a retie.",
+      },
+      {
+        id: "gruner",
+        side: "Right",
+        name: "Grüner Veltliner",
+        rowLabel: "N74-79",
+        rows: 6,
+        ha: 0.55,
+        haLabel: "0.55Ha",
+        fill: "#d4b8f0",
+        stageCode: "E-L 15",
+        stageName: "Eight leaves separated",
+        stageWhat: "Canopy filling fast. Flower bunches are clear.",
+        stageWork: "Lift the first catch wire. Shoot-thin crowded crowns.",
+        stageNote: "30 Oct. Strong push. Take the weaker of any double shoots at the head.",
+      },
+      {
+        id: "shiraz",
+        side: "Right",
+        name: "Shiraz",
+        rowLabel: "N58-73",
+        rows: 16,
+        ha: 1.35,
+        haLabel: "1.35Ha",
+        fill: "#f4a0b4",
+        stageCode: "E-L 12",
+        stageName: "Shoots 10 cm, inflorescences visible",
+        stageWhat: "Still behind the whites. Five to seven leaves, bunches visible but not stretched.",
+        stageWork: "Shoot-thin while they are soft. First powdery spray if it has not gone on.",
+        stageNote: "30 Oct. West end a few days ahead. No downy after last week's rain.",
+      },
+      {
+        id: "cabernet",
+        side: "Right",
+        name: "Cabernet Sauvignon",
+        rowLabel: "N40-57",
+        rows: 18,
+        ha: 1.47,
+        haLabel: "1.47Ha",
+        fill: "#f2e4c8",
+        inactive: true,
+        stageCode: "E-L 9",
+        stageName: "Two to three leaves separated",
+        stageWhat: "Latest block. Buds are out but the canopy is still thin. No crop this year.",
+        stageWork: "No shoot thinning. Spray only if powdery shows. Keep suckers off the trunks.",
+        stageNote: "30 Oct. Uneven budburst. Leave it.",
+      },
+      {
+        id: "merlot",
+        side: "Right",
+        name: "Merlot",
+        rowLabel: "N22-39",
+        rows: 18,
+        ha: 1.32,
+        haLabel: "1.32Ha",
+        fill: "#f0b090",
+        inactive: true,
+        stageCode: "E-L 12",
+        stageName: "Shoots 10 cm, inflorescences visible",
+        stageWhat: "Canopy is moving but the block is inactive, so there is no crop target.",
+        stageWork: "Skip the wires. Spray only if powdery is spreading to Chardonnay.",
+        stageNote: "30 Oct. More even than the Cabernet. Drop any bunches at fruit set if the vines need a rest.",
+      },
+      {
+        id: "chardonnay",
+        side: "Right",
+        name: "Chardonnay",
+        rowLabel: "N4-21",
+        rows: 18,
+        ha: 1.14,
+        haLabel: "1.14Ha",
+        fill: "#f7e37a",
+        stageCode: "E-L 23",
+        stageName: "Full flowering, 50 percent capfall",
+        stageWhat: "Peak flowering. Caps falling in the afternoon wind. Set is decided in the next week.",
+        stageWork: "Flowering spray this pass. Do not leaf-pluck until set is finished.",
+        stageNote: "30 Oct. Capfall heaviest on the top wire. Hold the sprayer until late afternoon.",
+      },
+      {
+        id: "sauvignon-blanc",
+        side: "Right",
+        name: "Sauvignon Blanc",
+        rowLabel: "Rows 1-3",
+        rows: 3,
+        ha: 0.15,
+        haLabel: "0.15Ha",
+        fill: "#7ed9c4",
+        stageCode: "E-L 19",
+        stageName: "Beginning of flowering",
+        stageWhat: "Caps just starting to lift. Sauvignon sets fast and the bunches sit tight.",
+        stageWork: "Tuck shoots. Flowering spray with the Chardonnay pass.",
+        stageNote: "30 Oct. A bit wind-exposed. A few snapped tips on the end posts.",
+      },
+    ];
+
+    function usePhoneMap() {
+      const narrow = window.matchMedia("(max-width: 1100px)").matches;
+      const portrait = window.matchMedia("(orientation: portrait)").matches;
+      const phoneAgent = /iPhone|iPod|Android.+Mobile|Windows Phone/i.test(navigator.userAgent || "");
+      return narrow || (portrait && phoneAgent);
+    }
+
+    function applyLayoutClass() {
+      const phone = usePhoneMap();
+      document.documentElement.classList.toggle("is-phone", phone);
+      document.documentElement.classList.toggle("is-desktop", !phone);
+      return phone;
+    }
+
+    function layoutDesktop() {
+      const top = 96;
+      const bot = MAP_H - 40;
+      const gap = 10;
+      const leftSpec = {
+        "pinot-gris": { x: 210, w: 860 },
+        arneis: { x: 80, w: 990 },
+        s153: { x: 80, w: 990 },
+        tempranillo: { x: 80, w: 990 },
+        "pinot-noir-2": { x: 80, w: 990 },
+        "pinot-noir-1": { x: 80, w: 990 },
+        "merlot-pinot": { x: 80, w: 990 },
+      };
+      const rightSpec = {
+        viognier: { x: 1210, w: 1110 },
+        "viognier-gruner": { x: 1210, w: 1000 },
+        gruner: { x: 1210, w: 960 },
+        shiraz: { x: 1210, w: 960 },
+        cabernet: { x: 1210, w: 960 },
+        merlot: { x: 1210, w: 960 },
+        chardonnay: { x: 1210, w: 840 },
+        "sauvignon-blanc": { x: 1330, w: 720 },
+      };
+      function layout(side, spec) {
+        const items = blocks.filter((b) => b.side === side);
+        const maxRows = Math.max(...items.map((b) => b.rows));
+        const weights = items.map((b) => 0.48 + 0.52 * (b.rows / maxRows));
+        const sum = weights.reduce((n, w) => n + w, 0);
+        const usable = bot - top - gap * (items.length - 1);
+        let y = top;
+        items.forEach((b, i) => {
+          const place = spec[b.id];
+          b.x = place.x;
+          b.w = place.w;
+          b.h = usable * (weights[i] / sum);
+          b.y = y;
+          y += b.h + gap;
+        });
+      }
+      layout("Left", leftSpec);
+      layout("Right", rightSpec);
+      return {
+        W: MAP_W,
+        H: MAP_H,
+        northTitle: { x: 575, y: 70 },
+        southTitle: { x: 1765, y: 70 },
+      };
+    }
+
+    function blockMarkup(b) {
+      const x = b.x;
+      const y = b.y;
+      const cx = x + b.w / 2;
+      const cy = y + b.h / 2;
+      let fontSize = Math.max(20, Math.min(36, b.h * 0.26));
+      const lines = b.name ? [b.name] : [];
+      const longest = lines.reduce((n, line) => Math.max(n, line.length), 0);
+      if (longest) {
+        fontSize = Math.min(fontSize, b.w / (longest * 0.62));
+      }
+      fontSize = Math.max(18, fontSize);
+      const lineH = fontSize * 1.1;
+      const startY = cy - ((lines.length - 1) * lineH) / 2 + fontSize * 0.32;
+      const label = lines.map((line, i) =>
+        `<text class="label" x="${cx}" y="${startY + i * lineH}" text-anchor="middle" font-size="${fontSize.toFixed(1)}">${line}</text>`
+      ).join("");
+      return `<g class="block" data-id="${b.id}" tabindex="0" style="--glow:${b.fill}">
+        <rect class="hit" x="${x}" y="${y - 6}" width="${b.w}" height="${b.h + 12}"/>
+        <rect class="fill" x="${x}" y="${y}" width="${b.w}" height="${b.h}"/>
+        ${label}
+      </g>`;
+    }
+
+    const svg = document.getElementById("map");
+    const nodes = new Map();
+
+    function bindNodes() {
+      nodes.clear();
+      blocks.forEach((b) => {
+        nodes.set(b.id, {
+          g: document.querySelector(`#map g[data-id="${b.id}"]`),
+        });
+      });
+    }
+
+    function drawMap() {
+      applyLayoutClass();
+      const frame = layoutDesktop();
+      svg.setAttribute("viewBox", `0 0 ${frame.W} ${frame.H}`);
+      svg.innerHTML = `
+        <rect width="${frame.W}" height="${frame.H}" fill="${NAVY}"/>
+        <rect x="40" y="28" width="${frame.W - 80}" height="${frame.H - 56}" fill="none" stroke="${CREAM}" stroke-width="2"/>
+        <line x1="1148" y1="28" x2="1148" y2="${frame.H - 28}" stroke="${CREAM}" stroke-width="2"/>
+        <text class="map-title" x="${frame.northTitle.x}" y="${frame.northTitle.y}" text-anchor="middle" font-size="24">NORTH BLOCK</text>
+        <text class="map-title" x="${frame.southTitle.x}" y="${frame.southTitle.y}" text-anchor="middle" font-size="24">SOUTH BLOCK</text>
+        ${blocks.map((b) => blockMarkup(b)).join("")}
+      `;
+      bindNodes();
+    }
+
+    drawMap();
+
+    const JOBS = ["Pruning", "Canopy", "Undervine", "Spraying", "Harvest"];
+    const STORE = "oculus-vineyard-log-draft";
+    const OPS_STORE = "oculus-vineyard-site-logs";
+    const SITE_LOGS = [
+      { id: "spray", name: "Spray Log", hint: "Chemicals, rates, wind, and what was sprayed.", fill: "#7ed9c4" },
+      { id: "machine", name: "Machine Maintenance Log", hint: "Tractors, sprayer, mower, and workshop work.", fill: "#f0b090" },
+      { id: "fuel", name: "Fuel Log", hint: "Diesel, petrol, and fill records.", fill: "#f7e37a" },
+      { id: "irrigation", name: "Irrigation Log", hint: "Pumps, hours, and water applied.", fill: "#8fd4f0" },
+      { id: "safety", name: "Safety Log", hint: "Incidents, near misses, and site issues.", fill: "#f4a0b4" },
+      { id: "workshop", name: "Workshop & Parts", hint: "Repairs, parts ordered, and tools.", fill: "#c5b4e8" },
+    ];
+
+    document.getElementById("logs").innerHTML =
+      `<p class="logs-label">Site logs</p>` +
+      SITE_LOGS.map((item) => `<button type="button" data-log="${item.id}">${item.name}</button>`).join("");
+
+    function emptyLog() {
+      const log = {};
+      blocks.forEach((b) => {
+        log[b.id] = { jobs: {}, notes: "" };
+        JOBS.forEach((job) => { log[b.id].jobs[job] = ""; });
+      });
+      return log;
+    }
+
+    function loadLog() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(STORE) || "null");
+        if (!saved) return emptyLog();
+        const log = emptyLog();
+        blocks.forEach((b) => {
+          if (!saved[b.id]) return;
+          log[b.id].notes = saved[b.id].notes || "";
+          JOBS.forEach((job) => {
+            log[b.id].jobs[job] = saved[b.id].jobs && saved[b.id].jobs[job] || "";
+          });
+        });
+        return log;
+      } catch (err) {
+        return emptyLog();
+      }
+    }
+
+    function emptyOps() {
+      const ops = {};
+      SITE_LOGS.forEach((item) => { ops[item.id] = []; });
+      return ops;
+    }
+
+    function loadOps() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(OPS_STORE) || "null");
+        if (!saved) return emptyOps();
+        const ops = emptyOps();
+        SITE_LOGS.forEach((item) => {
+          if (Array.isArray(saved[item.id])) ops[item.id] = saved[item.id];
+        });
+        return ops;
+      } catch (err) {
+        return emptyOps();
+      }
+    }
+
+    const log = loadLog();
+    const ops = loadOps();
+    let selected = null;
+    let selectedLog = null;
+    let hovered = null;
+
+    function saveLog() {
+      localStorage.setItem(STORE, JSON.stringify(log));
+    }
+
+    function saveOps() {
+      localStorage.setItem(OPS_STORE, JSON.stringify(ops));
+    }
+
+    function escapeText(value) {
+      return String(value || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function todayStamp() {
+      const now = new Date();
+      const month = String(now.getMonth() + 1).padStart(2, "0");
+      const day = String(now.getDate()).padStart(2, "0");
+      return `${now.getFullYear()}-${month}-${day}`;
+    }
+
+    function idOf(el) {
+      return el.getAttribute("data-id");
+    }
+
+    function hoverBlock(id) {
+      if (hovered === id) return;
+      hovered = id;
+      setActive();
+    }
+
+    function setActive() {
+      blocks.forEach((b) => {
+        const on = b.id === selected || b.id === hovered;
+        const node = nodes.get(b.id);
+        if (!node) return;
+        if (node.g) {
+          node.g.classList.toggle("is-active", b.id === selected);
+          node.g.classList.toggle("is-lit", on);
+        }
+      });
+    }
+
+    function showOverview() {
+      selected = null;
+      selectedLog = null;
+      setActive();
+      document.body.classList.remove("is-open");
+      document.getElementById("panel").style.removeProperty("--glow");
+    }
+
+    function renderDetail(id) {
+      const b = blocks.find((block) => block.id === id);
+      if (!b) return;
+      const note = (log[id].notes || "").replace(/&/g, "&amp;").replace(/</g, "&lt;");
+      if (b.notesOnly) {
+        document.getElementById("detail").innerHTML = `
+          <button class="back" type="button" id="back">Back</button>
+          <textarea id="notes" class="notes-only" placeholder="Note">${note}</textarea>
+        `;
+        return;
+      }
+      const area = b.haLabel ? b.haLabel.replace("Ha", " ha") : "area not given";
+      const jobRows = JOBS.map((job) => {
+        const status = log[id].jobs[job];
+        return `<div class="job">
+          <span class="job-name">${job}</span>
+          <span class="job-actions">
+            <button type="button" data-job="${job}" data-status="due" class="${status === "due" ? "is-on" : ""}">Due</button>
+            <button type="button" data-job="${job}" data-status="done" class="${status === "done" ? "is-on" : ""}">Done</button>
+          </span>
+        </div>`;
+      }).join("");
+      const stage = b.stageCode ? `
+        <div class="stage-box">
+          <p class="stage-kicker">Growth stage</p>
+          <p class="stage-name">${b.stageCode} · ${b.stageName}</p>
+          <dl>
+            <dt>Meaning</dt>
+            <dd>${b.stageWhat}</dd>
+            <dt>Work</dt>
+            <dd>${b.stageWork}</dd>
+            <dt>Notes</dt>
+            <dd>${b.stageNote}</dd>
+          </dl>
+        </div>
+      ` : "";
+      document.getElementById("detail").innerHTML = `
+        <button class="back" type="button" id="back">Back</button>
+        <h2 class="block-head">${b.name}</h2>
+        ${b.inactive ? '<p class="inactive-flag">Inactive Blocks</p>' : ""}
+        <p class="block-meta">${b.rows} rows · ${area}</p>
+        ${stage}
+        ${jobRows}
+        <textarea id="notes" placeholder="Note">${note}</textarea>
+      `;
+    }
+
+    function selectBlock(id) {
+      selected = id;
+      selectedLog = null;
+      const b = blocks.find((block) => block.id === id);
+      document.getElementById("panel").style.setProperty("--glow", b ? b.fill : "");
+      renderDetail(id);
+      setActive();
+      requestAnimationFrame(() => document.body.classList.add("is-open"));
+    }
+
+    function renderSiteLog(id) {
+      const spec = SITE_LOGS.find((item) => item.id === id);
+      if (!spec) return;
+      const entries = ops[id] || [];
+      const list = entries.length
+        ? entries.map((entry) => `
+            <div class="log-entry">
+              <time>${escapeText(entry.date)}</time>
+              <p>${escapeText(entry.note)}</p>
+            </div>
+          `).join("")
+        : `<p class="log-empty">No entries yet.</p>`;
+      document.getElementById("detail").innerHTML = `
+        <button class="back" type="button" id="back">Back</button>
+        <h2 class="block-head">${spec.name}</h2>
+        <p class="block-meta">${spec.hint}</p>
+        ${list}
+        <div class="log-add">
+          <label for="log-date">Date</label>
+          <input id="log-date" type="date" value="${todayStamp()}" />
+          <label for="log-note">Entry</label>
+          <textarea id="log-note" placeholder="What happened"></textarea>
+          <button class="add-entry" type="button" id="add-entry">Add entry</button>
+        </div>
+      `;
+    }
+
+    function selectLog(id) {
+      selected = null;
+      selectedLog = id;
+      setActive();
+      const spec = SITE_LOGS.find((item) => item.id === id);
+      document.getElementById("panel").style.setProperty("--glow", spec ? spec.fill : "");
+      renderSiteLog(id);
+      requestAnimationFrame(() => document.body.classList.add("is-open"));
+    }
+
+    document.getElementById("map").addEventListener("pointermove", (event) => {
+      const g = event.target.closest(".block");
+      if (g) hoverBlock(idOf(g));
+    });
+    document.getElementById("map").addEventListener("pointerleave", () => {
+      hoverBlock(null);
+    });
+    document.getElementById("map").addEventListener("click", (event) => {
+      const g = event.target.closest(".block");
+      if (g) selectBlock(g.dataset.id);
+    });
+    document.getElementById("map").addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      const g = event.target.closest(".block");
+      if (!g) return;
+      event.preventDefault();
+      selectBlock(g.dataset.id);
+    });
+
+    document.getElementById("logs").addEventListener("click", (event) => {
+      const btn = event.target.closest("button[data-log]");
+      if (btn) selectLog(btn.dataset.log);
+    });
+
+    document.querySelector("aside").addEventListener("click", (event) => {
+      if (event.target.id === "back") {
+        showOverview();
+        return;
+      }
+      if (event.target.id === "add-entry" && selectedLog) {
+        const date = document.getElementById("log-date").value || todayStamp();
+        const note = (document.getElementById("log-note").value || "").trim();
+        if (!note) return;
+        ops[selectedLog].unshift({ date, note });
+        saveOps();
+        renderSiteLog(selectedLog);
+        return;
+      }
+      const jobBtn = event.target.closest(".job-actions button");
+      if (!jobBtn || !selected) return;
+      const job = jobBtn.dataset.job;
+      const status = jobBtn.dataset.status;
+      log[selected].jobs[job] = log[selected].jobs[job] === status ? "" : status;
+      saveLog();
+      renderDetail(selected);
+    });
+
+    document.querySelector("aside").addEventListener("input", (event) => {
+      if (event.target.id !== "notes" || !selected) return;
+      log[selected].notes = event.target.value;
+      saveLog();
+    });
+
+    let layoutTimer = 0;
+    function syncMapLayout() {
+      const phone = usePhoneMap();
+      const isPhone = document.documentElement.classList.contains("is-phone");
+      if (phone === isPhone) return;
+      applyLayoutClass();
+    }
+    function scheduleLayoutSync() {
+      clearTimeout(layoutTimer);
+      layoutTimer = setTimeout(syncMapLayout, 50);
+    }
+    window.addEventListener("resize", scheduleLayoutSync);
+    window.addEventListener("orientationchange", scheduleLayoutSync);
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", scheduleLayoutSync);
+    }
+    const phoneMq = window.matchMedia("(max-width: 1100px)");
+    const orientMq = window.matchMedia("(orientation: portrait)");
+    if (phoneMq.addEventListener) {
+      phoneMq.addEventListener("change", scheduleLayoutSync);
+      orientMq.addEventListener("change", scheduleLayoutSync);
+    } else {
+      phoneMq.addListener(scheduleLayoutSync);
+      orientMq.addListener(scheduleLayoutSync);
+    }
+
+  </script>
+</body>
+</html>
