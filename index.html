@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <title>Oculus Vineyard</title>
   <meta name="description" content="Block map and site logs for Oculus Vineyard." />
   <meta name="apple-mobile-web-app-title" content="Oculus Vineyard" />
@@ -483,9 +484,10 @@
 
     html.is-phone svg {
       width: 100%;
-      height: 100%;
+      height: auto;
       max-width: 100%;
       max-height: 100%;
+      aspect-ratio: 2400 / 1300;
     }
 
     html.is-phone .logs {
@@ -556,6 +558,11 @@
         margin: 0 0 3px;
         font-size: 11px;
       }
+
+      html.is-phone svg {
+        height: 100%;
+        aspect-ratio: auto;
+      }
     }
 
     @media (orientation: portrait) {
@@ -565,6 +572,14 @@
 
       html.is-phone .map-wrap {
         padding: 8px max(8px, env(safe-area-inset-right)) 72px max(8px, env(safe-area-inset-left));
+        align-items: center;
+        justify-content: center;
+      }
+
+      html.is-phone svg {
+        width: 100%;
+        height: auto;
+        aspect-ratio: 2400 / 1300;
       }
 
       html.is-phone .logs {
@@ -856,8 +871,10 @@
     ];
 
     function usePhoneMap() {
-      const narrow = window.matchMedia("(max-width: 1100px)").matches;
-      const portrait = window.matchMedia("(orientation: portrait)").matches;
+      const w = window.innerWidth || 0;
+      const h = window.innerHeight || 0;
+      const narrow = w <= 1100;
+      const portrait = h >= w;
       const phoneAgent = /iPhone|iPod|Android.+Mobile|Windows Phone/i.test(navigator.userAgent || "");
       return narrow || (portrait && phoneAgent);
     }
@@ -1241,9 +1258,6 @@
 
     let layoutTimer = 0;
     function syncMapLayout() {
-      const phone = usePhoneMap();
-      const isPhone = document.documentElement.classList.contains("is-phone");
-      if (phone === isPhone) return;
       applyLayoutClass();
     }
     function scheduleLayoutSync() {
